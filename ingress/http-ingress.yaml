@@ -1,0 +1,85 @@
+# kubectl apply -f http-ingress.yaml
+kind: Pod
+apiVersion: v1
+metadata:
+  name: foo-app
+  labels:
+    app: foo
+spec:
+  containers:
+  - command:
+    - /agnhost
+    - serve-hostname
+    - --http=true
+    - --port=8080
+    image: registry.k8s.io/e2e-test-images/agnhost:2.39
+    name: foo-app
+    
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: foo-service
+spec:
+  type: NodePort  
+  selector:
+    app: foo
+  # Default port used by the image
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30001
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: bar-app
+  labels:
+    app: bar
+spec:
+  containers:
+  - command:
+    - /agnhost
+    - serve-hostname
+    - --http=true
+    - --port=8080
+    image: registry.k8s.io/e2e-test-images/agnhost:2.39
+    name: bar-app
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: bar-service
+spec:
+  type: NodePort  
+  selector:
+    app: bar
+  # Default port used by the image
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30002
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+spec:
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix
+        path: /foo
+        backend:
+          service:
+            name: foo-service
+            port:
+              number: 8080
+      - pathType: Prefix
+        path: /bar
+        backend:
+          service:
+            name: bar-service
+            port:
+              number: 8080
+---
